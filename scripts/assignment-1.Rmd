@@ -1,0 +1,15 @@
+---
+title: "BIOM/SYSC 5405: Pattern Classification and Experiment Design"
+subtitle: "Assignment 1"
+author: 
+- name: "Romeo Penheiro"
+  affiliation: Department of Cognitive Science, Carleton University
+date: "11/09/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
