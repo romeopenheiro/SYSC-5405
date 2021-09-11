@@ -12,4 +12,68 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r packages, message = FALSE, echo=T}
+# Install xfun so that I can use xfun::pkg_load2
+if (!requireNamespace('xfun')) install.packages('xfun')
+xf <- loadNamespace('xfun')
 
+cran_packages = c(
+                  "dplyr", 
+                  "ggplot2", 
+                  "knitr", 
+                  "readr", 
+                  "tibble", 
+                  "kableExtra",
+                  "gridExtra"
+                  )
+if (length(cran_packages) != 0) xf$pkg_load2(cran_packages)
+
+import::from(magrittr, '%>%')
+gg <- import::from(ggplot2, .all=TRUE, .into={new.env()})
+dp <- import::from(dplyr, .all=TRUE, .into={new.env()})
+```
+
+load the files
+
+# Eyeball the data
+
+```{r}
+tibble::glimpse(df_sales)
+```
+
+Print out the first three rows to get an idea of what the data actually look like. 
+
+```{r first-three_rows_df_sales}
+head(df_sales, 3) %>% 
+  knitr::kable(
+               caption = "First three rows of the `df_sales` data frame"
+  )
+```
+
+# Check for extreme values
+```{r max_min_values}
+df_sales_table <- df_sales %>%
+        dp$summarise(min_order_amount = min(order_amount),
+                    max_order_amount = max(order_amount),
+                    min_total_items = min(total_items),
+                    max_total_items = max(total_items))
+
+df_sales_table %>%
+  kableExtra::kbl(caption = "Minimum and maximum of `order_amount` and `total_items.`", row.names = T) %>%
+  kableExtra::kable_material("striped")
+```
+
+visualize if values are outliers
+
+```{r histogram_box-plot_order_amount}
+histo_plot <- gg$ggplot(data = df_sales, mapping = gg$aes(x = order_amount)) +
+        gg$geom_histogram(bins = 50, alpha = 0.15, color = "gray50") +
+        gg$scale_x_log10(labels=scales::comma)
+
+box_plot <- gg$ggplot(data = df_sales, mapping = gg$aes(x = "", y = order_amount)) +
+        gg$geom_boxplot() +
+        gg$scale_y_log10(labels=scales::comma) +
+        gg$coord_flip() 
+
+gridExtra::grid.arrange(histo_plot, box_plot, nrow = 2)
+```
