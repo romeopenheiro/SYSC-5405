@@ -21,10 +21,11 @@ cran_packages = c(
                   "dplyr", 
                   "ggplot2", 
                   "knitr", 
-                  "readr", 
+                  "readxl", 
                   "tibble", 
                   "kableExtra",
-                  "gridExtra"
+                  "gridExtra",
+                  "here"
                   )
 if (length(cran_packages) != 0) xf$pkg_load2(cran_packages)
 
@@ -35,11 +36,86 @@ dp <- import::from(dplyr, .all=TRUE, .into={new.env()})
 
 load the files
 
-# Eyeball the data
+```{r}
+pci_raw <- readxl::read_xls(path = here::here("data", "assigData1.xls"), 
+                            sheet = "PCI")
+```
 
 ```{r}
-tibble::glimpse(df_sales)
+psipred_raw <- readxl::read_xls(path = here::here("data", "assigData1.xls"), 
+                            sheet = "PSIPRED")
 ```
+
+```{r}
+tibble::glimpse(pci_raw)
+```
+
+```{r}
+tibble::glimpse(psipred_raw)
+```
+
+# Question 1: Classifier scores
+
+```{r}
+q3_length_pci <- gg$ggplot(data = pci_raw, mapping = gg$aes(x = Length, y = Q3)) +
+  gg$geom_jitter()
+q3_length_pci
+
+```
+
+```{r}
+q3_length_psipred <- gg$ggplot(data = psipred_raw, mapping = gg$aes(x = Length, y = Q3)) +
+  gg$geom_jitter()
+q3_length_psipred
+
+```
+Based on these plots, there does not seem to be a correlation between Q3 accuracy 
+with protein length for both the methods.
+
+Spearmen co-relation between the two variables
+
+```{r}
+cor.test(pci_raw$Length, pci_raw$Q3,
+         method = "spearman",
+         exact = FALSE)
+```
+```{r}
+cor.test(psipred_raw$Length, psipred_raw$Q3,
+         method = "spearman",
+         exact = FALSE)
+```
+Why did I use Spearman's correlation?
+https://ademos.people.uic.edu/Chapter22.html
+http://www.statstutor.ac.uk/resources/uploaded/spearmans.pdf
+https://www.quora.com/What-is-the-difference-between-dependence-and-correlation
+
+mean, median, and standard deviation of the Matthews’ correlation coefficien
+
+```{r}
+
+```
+
+
+# Question 2: Feature data
+# Question 3: Generating data & the normal distribution
+```{r message=F, echo=F}
+df_sales <- readr::read_csv("https://query.data.world/s/e76we3vpgut5cmydqgm2nb7e5xqx7i", 
+                            col_types = readr::cols(
+                                             order_id = readr::col_integer(), 
+                                             shop_id = readr::col_integer(), 
+                                             user_id = readr::col_integer(), 
+                                             order_amount = readr::col_double(), 
+                                             total_items = readr::col_integer(), 
+                                             payment_method = readr::col_factor(), 
+                                             created_at = readr::col_datetime(format = "%Y-%m-%d %H:%M:%z")
+                                             )
+)
+# df_sales # sanity check to make sure the data has been imported correctly
+```
+
+# Eyeball the data
+
+
 
 Print out the first three rows to get an idea of what the data actually look like. 
 
