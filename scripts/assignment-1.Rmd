@@ -22,10 +22,12 @@ cran_packages = c(
                   "ggplot2", 
                   "knitr", 
                   "readxl", 
-                  "tibble", 
+                  "tibble",
+                  "skimr",
                   "kableExtra",
                   "gridExtra",
-                  "here"
+                  "here",
+                  "utils"
                   )
 if (length(cran_packages) != 0) xf$pkg_load2(cran_packages)
 
@@ -46,6 +48,12 @@ psipred_raw <- readxl::read_xls(path = here::here("data", "assigData1.xls"),
                             sheet = "PSIPRED")
 ```
 
+```{r}
+feature_raw_data <- utils::read.table(file = here::here("data", "assigData2.tsv"), sep = '\t', header = TRUE)
+feature_raw_data
+```
+
+# Explore the data 
 ```{r}
 tibble::glimpse(pci_raw)
 ```
@@ -79,6 +87,7 @@ cor.test(pci_raw$Length, pci_raw$Q3,
          method = "spearman",
          exact = FALSE)
 ```
+
 ```{r}
 cor.test(psipred_raw$Length, psipred_raw$Q3,
          method = "spearman",
@@ -91,12 +100,70 @@ https://www.quora.com/What-is-the-difference-between-dependence-and-correlation
 
 mean, median, and standard deviation of the Matthews’ correlation coefficien
 
-```{r}
+
+```{r echo=T}
+# Using the `skimr` function
+# Create a template function for descriptives
+my_skim <- skimr::skim_with(base = skimr::sfl(n = length, 
+                                              missing =skimr::n_missing),
+                            numeric = skimr::sfl(mean, 
+                                                 sd, 
+                                                 iqr = IQR, # stats::IQR
+                                                 min, 
+                                                 p25 = ~ quantile(., 1/4), 
+                                                 median, 
+                                                 p75 = ~ quantile(., 3/4), 
+                                                 max
+                                                 ), append = FALSE
+) #sfl stands for "skimr function list"
 
 ```
 
 
+```{r}
+my_skim(pci_raw$CC)
+```
+
+```{r}
+my_skim(psipred_raw$CC_AVG)
+```
+
 # Question 2: Feature data
+
+```{r}
+my_skim(feature_raw_data)
+```
+
+histograms for each feature
+
+```{r}
+# value = c(feature_raw_data$W_apl, feature_raw_data$W_orng, feature_raw_data$W_grp)
+# gg$ggplot(data = feature_raw_data, mapping = gg$aes(x = value) +
+#                 gg$geom_histogram((color="#e9ecef", 
+#                                    alpha=0.6, 
+#                                    position = 'identity', 
+#                           #binwidth = 2.5,
+#                                     alpha = 0.6) +
+#         gg$labs(x = "Weight", 
+#                 y = "Frequency", 
+#                 title = "A histogram of the feature weight."))
+#         )
+
+dat <- data.frame(W_apl = feature_raw_data$W_apl,
+                  W_orng = feature_raw_data$W_orng,
+                  W_grp = feature_raw_data$W_grp)
+
+gg$ggplot(data = feature_raw_data, mapping = gg$aes()) +
+    gg$geom_histogram(mapping = gg$aes(x = W_apl), fill = "red", color = "red", alpha = 0.5, position = "identity") +
+    gg$geom_histogram(mapping = gg$aes(x = W_orng), fill = "blue", color = "blue", alpha = 0.5, position = "identity") +
+    gg$geom_histogram(mapping = gg$aes(x = W_grp), fill = "green", color = "green", alpha = 0.5, position = "identity") +
+    gg$scale_fill_manual(name="Feature", values=c("red","blue", "green"),labels=c("a","b")) +
+    gg$labs(x = "Weight", 
+                 y = "Frequency", 
+                 title = "A histogram of the feature weight.")
+```
+
+
 # Question 3: Generating data & the normal distribution
 ```{r message=F, echo=F}
 df_sales <- readr::read_csv("https://query.data.world/s/e76we3vpgut5cmydqgm2nb7e5xqx7i", 
