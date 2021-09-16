@@ -1,11 +1,15 @@
 ---
-title: "BIOM/SYSC 5405: Pattern Classification and Experiment Design"
-subtitle: "Assignment 1"
-author: 
-- name: "Romeo Penheiro"
+title: 'BIOM/SYSC 5405: Pattern Classification and Experiment Design'
+author:
+- name: Romeo Penheiro
   affiliation: Department of Cognitive Science, Carleton University
 date: "11/09/2021"
-output: pdf_document
+output:
+  pdf_document:
+    latex_engine: xelatex
+  html_document:
+    df_print: paged
+subtitle: Assignment 1
 ---
 
 ```{r setup, include=FALSE}
@@ -27,7 +31,11 @@ cran_packages = c(
                   "kableExtra",
                   "gridExtra",
                   "here",
-                  "utils"
+                  "utils",
+                  "tidyr",
+                  "stats",
+                  "ggpubr",
+                  "MASS"
                   )
 if (length(cran_packages) != 0) xf$pkg_load2(cran_packages)
 
@@ -122,6 +130,7 @@ my_skim <- skimr::skim_with(base = skimr::sfl(n = length,
 
 ```{r}
 my_skim(pci_raw$CC)
+
 ```
 
 ```{r}
@@ -129,94 +138,153 @@ my_skim(psipred_raw$CC_AVG)
 ```
 
 # Question 2: Feature data
-
+# (a) Estimation of the class-conditional distribution parameters of each feature and for each class
 ```{r}
 my_skim(feature_raw_data)
 ```
 
-histograms for each feature
+# (b) Plotting the histograms for each feature
+
+## Wrangling the data
 
 ```{r}
-# value = c(feature_raw_data$W_apl, feature_raw_data$W_orng, feature_raw_data$W_grp)
-# gg$ggplot(data = feature_raw_data, mapping = gg$aes(x = value) +
-#                 gg$geom_histogram((color="#e9ecef", 
-#                                    alpha=0.6, 
-#                                    position = 'identity', 
-#                           #binwidth = 2.5,
-#                                     alpha = 0.6) +
-#         gg$labs(x = "Weight", 
-#                 y = "Frequency", 
-#                 title = "A histogram of the feature weight."))
-#         )
 
-dat <- data.frame(W_apl = feature_raw_data$W_apl,
-                  W_orng = feature_raw_data$W_orng,
-                  W_grp = feature_raw_data$W_grp)
-
-gg$ggplot(data = feature_raw_data, mapping = gg$aes()) +
-    gg$geom_histogram(mapping = gg$aes(x = W_apl), fill = "red", color = "red", alpha = 0.5, position = "identity") +
-    gg$geom_histogram(mapping = gg$aes(x = W_orng), fill = "blue", color = "blue", alpha = 0.5, position = "identity") +
-    gg$geom_histogram(mapping = gg$aes(x = W_grp), fill = "green", color = "green", alpha = 0.5, position = "identity") +
-    gg$scale_fill_manual(name="Feature", values=c("red","blue", "green"),labels=c("a","b")) +
-    gg$labs(x = "Weight", 
-                 y = "Frequency", 
-                 title = "A histogram of the feature weight.")
+tidy_data <- feature_raw_data %>% 
+  tidyr::pivot_longer(names_to = "feature", 
+               values_to = "values", 
+               cols = everything())
 ```
 
+```{r}
+weight_tidy_data <- tidy_data %>%
+  dp$filter(feature == c("W_apl", "W_orng", "W_grp"))
+
+diameter_tidy_data <- tidy_data %>%
+  dp$filter(feature == c("D_apl", "D_orng", "D_grp"))
+```
+
+
+## Histograms for weight feature
+```{r}
+
+gg$ggplot(data = weight_tidy_data, mapping = gg$aes(fill = feature, color = feature)) +
+    gg$geom_histogram(mapping = gg$aes(x = values), alpha = 0.5, position = "identity", binwidth = 0.5)  +
+    gg$labs(x = "Weight",
+                 y = "Frequency",
+                 title = "A histogram of the feature weight (binwidth = 0.5)")
+```
+
+```{r}
+
+gg$ggplot(data = weight_tidy_data, mapping = gg$aes(fill = feature, color = feature)) +
+    gg$geom_histogram(mapping = gg$aes(x = values), alpha = 0.5, position = "identity", binwidth = 1)  +
+    gg$labs(x = "Weight",
+                 y = "Frequency",
+                 title = "A histogram of the feature weight (binwidth = 1)")
+```
+
+## Histograms for diameter feature
+
+```{r}
+
+gg$ggplot(data = diameter_tidy_data, mapping = gg$aes(fill = feature, color = feature)) +
+    gg$geom_histogram(mapping = gg$aes(x = values), alpha = 0.5, position = "identity", binwidth = 10)  +
+    gg$labs(x = "Weight",
+                 y = "Frequency",
+                 title = "A histogram of the feature diameter (binwidth = 10)")
+```
+
+```{r}
+
+gg$ggplot(data = diameter_tidy_data, mapping = gg$aes(fill = feature, color = feature)) +
+    gg$geom_histogram(mapping = gg$aes(x = values), alpha = 0.5, position = "identity", binwidth = 50)  +
+    gg$labs(x = "Weight",
+                 y = "Frequency",
+                 title = "A histogram of the feature diameter (binwidth = 50)")
+```
+
+I'd prefer the feature diameter because this feature seems to be allow non-overlapping frequency distribution curve for apples, grapes, and oranges. This means that a classifier will be better able to distiguish between the three fruits. The feature weight does not have as distinguishing classification for the fruits.  
+
+# (c) Testing for normality
+
+```{r}
+a <- unlist(weight_tidy_data$values)
+b <- as.vector(a, mode='numeric')
+c <- round(b, digits = 0)
+```
+
+
+```{r}
+ggpubr::ggqqplot(c)
+```
+
+For the data, I used a QQ plot to test for normality. QQ plot allows us to make a correlation between our sample and the normal distribution. Generally, if the data follows a Gaussian distribution, then all the data points in the QQ plot falls along the `y = x` reference line. We cannot assume normality in the dataset because only some of the data falls in the reference line whil most of the data points are far from the normal line.
 
 # Question 3: Generating data & the normal distribution
-```{r message=F, echo=F}
-df_sales <- readr::read_csv("https://query.data.world/s/e76we3vpgut5cmydqgm2nb7e5xqx7i", 
-                            col_types = readr::cols(
-                                             order_id = readr::col_integer(), 
-                                             shop_id = readr::col_integer(), 
-                                             user_id = readr::col_integer(), 
-                                             order_amount = readr::col_double(), 
-                                             total_items = readr::col_integer(), 
-                                             payment_method = readr::col_factor(), 
-                                             created_at = readr::col_datetime(format = "%Y-%m-%d %H:%M:%z")
-                                             )
-)
-# df_sales # sanity check to make sure the data has been imported correctly
+# (a)
+```{r}
+N <- 1000 # samples
+set.seed(123)
+
+# bivariate normal distribution
+mu <- c(1.2, 3.1) 
+sigma <- matrix(c(1.2, 0.7, 0.7, 3.3), 2) # Covariance matrix
+
 ```
 
-# Eyeball the data
+# (b)
+```{r}
+bvn <- MASS::mvrnorm(N, mu = mu, Sigma = sigma ) # from MASS 
 
+plot(bvn, main="Scatter plot of the data", xlab="V1 ", ylab="V2", ylim=c(-5,10), xlim=c(-5,10))
 
-
-Print out the first three rows to get an idea of what the data actually look like. 
-
-```{r first-three_rows_df_sales}
-head(df_sales, 3) %>% 
-  knitr::kable(
-               caption = "First three rows of the `df_sales` data frame"
-  )
 ```
 
-# Check for extreme values
-```{r max_min_values}
-df_sales_table <- df_sales %>%
-        dp$summarise(min_order_amount = min(order_amount),
-                    max_order_amount = max(order_amount),
-                    min_total_items = min(total_items),
-                    max_total_items = max(total_items))
-
-df_sales_table %>%
-  kableExtra::kbl(caption = "Minimum and maximum of `order_amount` and `total_items.`", row.names = T) %>%
-  kableExtra::kable_material("striped")
+# (c) 
+```{r}
+# Determinant of Sigma
+det(sigma)
 ```
 
-visualize if values are outliers
-
-```{r histogram_box-plot_order_amount}
-histo_plot <- gg$ggplot(data = df_sales, mapping = gg$aes(x = order_amount)) +
-        gg$geom_histogram(bins = 50, alpha = 0.15, color = "gray50") +
-        gg$scale_x_log10(labels=scales::comma)
-
-box_plot <- gg$ggplot(data = df_sales, mapping = gg$aes(x = "", y = order_amount)) +
-        gg$geom_boxplot() +
-        gg$scale_y_log10(labels=scales::comma) +
-        gg$coord_flip() 
-
-gridExtra::grid.arrange(histo_plot, box_plot, nrow = 2)
+```{r}
+# Trace of Sigma
+sum(diag(sigma))
 ```
+
+```{r}
+#Test for Positive definite
+isSymmetric(sigma)
+```
+
+
+Sigma is positive definite because the determinant is greater than zero.
+
+
+# (d) Eigenvectors and values of Sigma
+
+```{r}
+e <- eigen(sigma)
+#Eigen vectors
+e$values
+#Eigen values
+e$vectors
+```
+
+```{r}
+# Ellipse for line of equiprobability
+
+```
+
+
+# (e) Plotting the PDF and CDF
+
+```{r}
+x_axis <- seq(-12, 12, by = .1)
+
+y_axis_p <- dnorm(x_axis, mean = 3.3, sd = 0.3)
+y_axis_c <- pnorm(x_axis, mean = 3.3, sd = 0.3)
+
+plot(x_axis,y_axis_p, xlab="x", ylab="y", main="Probability Distribution Function")
+plot(x_axis,y_axis_c, xlab="x", ylab="y", main="Cumulative Distribution Function")
+```
+
